@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, EMPTY, filter, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { LivroVolumeInfo } from 'src/app/models/livroVolumeInfo';
 import { LivroService } from 'src/app/service/livro.service';
-import { Item } from './../../models/interfaces';
+import { Item, LivrosResultado } from './../../models/interfaces';
 
 const PAUSA = 300;
+
 @Component({
   selector: 'app-lista-livros',
   templateUrl: './lista-livros.component.html',
@@ -14,24 +15,28 @@ const PAUSA = 300;
 export class ListaLivrosComponent {
 
   campoBusca = new FormControl();
+  mensagemErro = ''
+  livrosResultado: LivrosResultado;
 
   constructor(private service: LivroService) { }
 
-  livrosEncontrados$ = this.campoBusca.valueChanges
-  .pipe(
-    debounceTime(PAUSA),
-    filter((valorDigitado) => valorDigitado.length >= 3),
-    tap(() => console.log('Fluxo inicial')),
-    distinctUntilChanged(),
-    switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
-    tap(() => console.log('Requisição servidor')),
-    map((items) => this.livrosResultadoParaLivros(items))
-  );
+  livrosEncontrados$: Observable<LivroVolumeInfo[]> = this.campoBusca.valueChanges
+    .pipe(
+      debounceTime(PAUSA),
+      filter((valorDigitado) => valorDigitado.length >= 3),
+      tap(() => console.log('Fluxo inicial')),
+      distinctUntilChanged(),
+      switchMap((valorDigitado) => this.service.buscar(valorDigitado)),
+      map(resultado => resultado.items ?? []),
+      map((items) => this.livrosResultadoParaLivros(items)),
+      catchError((erro) => {
+        console.error(erro);
+        return throwError(() => new Error(this.mensagemErro ='Erro ao buscar livros. Tente novamente!'))
+      })
+    );
 
   livrosResultadoParaLivros(items: Item[]): LivroVolumeInfo[] {
-    return items.map(item => {
-      return new LivroVolumeInfo(item);
-    });
+    return items.map(item => new LivroVolumeInfo(item));
   }
 
 }

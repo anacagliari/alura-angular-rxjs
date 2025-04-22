@@ -12,15 +12,8 @@ export class LivroService {
 
   constructor(private http: HttpClient) { }
 
-  buscar(valorDigitado: string): Observable<Item[]> {
-    const params = new HttpParams().append('q', valorDigitado);
-    return this.http.get<LivrosResultado>(this.API, { params }).pipe(
-      tap((retornoAPI) => console.log('Fluxo TAP', retornoAPI)),
-      map(resultado => Array.isArray(resultado.items) ? resultado.items : [resultado.items]),
-      // map(resultado => resultado.items),
-      // não funcionou o trecho acima conforme o curso, pois o retorno da API é um objeto e não um array
-      // o retorno da API é um objeto, mas o items é um array, então precisamos fazer a conversão
-      tap(resultado => console.log('Fluxo após MAP', resultado))
-    );
+  buscar(valorDigitado: string): Observable<LivrosResultado> {
+    const params = new HttpParams().append('q', valorDigitado );
+    return this.http.get<LivrosResultado>(this.API, { params })
   }
 }
